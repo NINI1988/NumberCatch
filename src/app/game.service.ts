@@ -2,6 +2,12 @@ import { Injectable } from '@angular/core';
 import { PendingSighting, Sighting } from './models';
 
 export type CaptureResult = { kind: 'next' | 'hint' | 'done'; number: number; nextNumber: number };
+
+export function visibleNumberLimit(currentNumber: number, friendProgresses: number[]): number {
+  const highestProgress = Math.max(0, currentNumber, ...friendProgresses);
+  return highestProgress + 20;
+}
+
 export function classifyCapture(currentNumber: number, number: number): CaptureResult {
   if (number <= currentNumber) return { kind: 'done', number, nextNumber: currentNumber + 1 };
   if (number === currentNumber + 1) return { kind: 'next', number, nextNumber: number + 1 };

@@ -145,9 +145,9 @@ main {
   margin: 30px 0 12px;
 }
 .number-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .number-cell {
   position: relative;
@@ -155,10 +155,16 @@ main {
   background: #fff;
   border: 1px solid #e6edf3;
   border-radius: 10px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 40px 10px 16px;
   font-weight: 700;
   color: #486581;
+}
+.number-label {
+  min-width: 42px;
+  font-size: 1.1rem;
 }
 .number-cell.completed {
   background: #e6f6ee;
@@ -171,6 +177,7 @@ main {
 }
 .number-cell small {
   font-size: 8px;
+  margin-left: auto;
 }
 .check {
   position: absolute;
@@ -384,9 +391,6 @@ textarea {
   font-weight: 900;
 }
 @media (min-width: 700px) {
-  .number-grid {
-    grid-template-columns: repeat(10, 1fr);
-  }
   .bottom-nav {
     left: 50%;
     right: auto;
@@ -482,26 +486,54 @@ textarea {
 .success {
   color: #1f7a50;
 }
-.number-avatars {
+.number-players {
   display: flex;
-  position: absolute;
-  bottom: 3px;
-  left: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.number-player {
+  position: relative;
+  display: inline-flex;
 }
 .number-avatar {
-  width: 14px;
-  height: 14px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border: 1px solid #fff;
+  border: 2px solid #fff;
   border-radius: 50%;
   background: #d9eaf7;
   background-size: cover;
   background-position: center;
   color: var(--navy);
-  font-size: 6px;
+  font-size: 0.72rem;
   font-weight: 800;
-  margin-left: -2px;
+  padding: 0;
+  cursor: pointer;
+}
+.number-avatar.own-avatar {
+  outline: 2px solid var(--orange);
+  outline-offset: 1px;
+}
+.player-name {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  display: none;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--navy);
+  color: #fff;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.number-player:hover .player-name,
+.number-player:focus-within .player-name {
+  display: block;
 }
 .sighting-list {
   margin-top: 28px;
