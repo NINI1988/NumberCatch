@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from './auth.service';
 import { CaptureResult, GameService } from './game.service';
-import { SyncService } from './sync.service';
+import { SupabaseService } from './supabase.service';
 
 @Component({
   standalone: true,
@@ -38,9 +38,14 @@ import { SyncService } from './sync.service';
         ></textarea>
       </label>
       <div class="location-status">{{ locationStatus() }}</div>
-      <button class="primary full" type="submit" [disabled]="saving()" [attr.aria-busy]="saving()">
+      <button
+        class="primary full"
+        type="submit"
+        [disabled]="saving() || !number"
+        [attr.aria-busy]="saving()"
+      >
         <span *ngIf="saving()" class="loading-spinner" aria-hidden="true"></span>
-        {{ saving() ? 'Speichern…' : 'Speichern' }}
+        {{ saving() ? 'Wird gespeichert…' : buttonLabel() }}
       </button>
     </form>
     <div *ngIf="saveMessage()" class="result-card good">
@@ -55,7 +60,7 @@ import { SyncService } from './sync.service';
 export class CaptureComponent implements OnInit {
   private readonly game = inject(GameService);
   private readonly auth = inject(AuthService);
-  private readonly sync = inject(SyncService);
+  private readonly supabase = inject(SupabaseService);
   private readonly route = inject(ActivatedRoute);
   readonly result = signal<CaptureResult | null>(null);
   readonly saveMessage = signal('');
@@ -76,6 +81,8 @@ export class CaptureComponent implements OnInit {
   async submit(): Promise<void> {
     if (!this.number || this.saving()) return;
     const number = this.number;
+    const profile = this.auth.profile();
+    if (!profile) return;
     this.saveMessage.set('');
     const result = this.game.classify(this.auth.profile()?.current_number ?? 0, number);
     if (result.kind === 'done') {
@@ -87,7 +94,7 @@ export class CaptureComponent implements OnInit {
       this.locationStatus.set('Standort wird erfasst …');
       await this.capturePosition();
       this.locationStatus.set('Fund wird gespeichert …');
-      this.game.enqueue({
+      await this.supabase.saveSighting(profile.id, {
         number,
         type: result.kind === 'next' ? 'confirmed' : 'hint',
         latitude: this.position?.coords.latitude ?? null,
@@ -97,17 +104,16 @@ export class CaptureComponent implements OnInit {
         created_at: new Date().toISOString(),
       });
       if (result.kind === 'next') {
-        const profile = this.auth.profile();
-        if (profile) this.auth.profile.set({ ...profile, current_number: result.number });
+        await this.supabase.updateProgress(profile.id, result.number);
+        this.auth.profile.set({ ...profile, current_number: result.number });
       }
-      await this.sync.flush();
       this.saveMessage.set(
         result.kind === 'next'
           ? `${result.number} gespeichert – dein Fortschritt wurde erhöht.`
           : `${result.number} wurde als private Vormerkung gespeichert.`,
       );
       this.result.set(null);
-      this.locationStatus.set('Gespeichert – wird synchronisiert, sobald Netz verfügbar ist.');
+      this.locationStatus.set('Gespeichert.');
       this.number = null;
       this.note = '';
     } finally {
@@ -127,6 +133,11 @@ export class CaptureComponent implements OnInit {
       : result.kind === 'hint'
         ? 'Der Fund wird als private Vormerkung gespeichert.'
         : 'Diese Zahl ist bereits abgeschlossen.';
+  }
+  buttonLabel(): string {
+    if (!this.number) return 'Zahl eingeben';
+    const kind = this.game.classify(this.auth.profile()?.current_number ?? 0, this.number).kind;
+    return kind === 'next' ? 'Bestätigen' : kind === 'hint' ? 'Vormerken' : 'Bereits erledigt';
   }
   private capturePosition(): Promise<void> {
     if (this.position || !navigator.geolocation) return Promise.resolve();

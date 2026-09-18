@@ -11,13 +11,8 @@ import { LucideCheck } from '@lucide/angular';
   standalone: true,
   imports: [CommonModule, RouterLink, LucideCheck],
   template: `<section class="page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">DEIN FORTSCHRITT</p>
-        <h1>
-          Du suchst gerade: <strong>{{ next() }}</strong>
-        </h1>
-      </div>
+    <div class="page-heading numbers-heading">
+      <p class="eyebrow">DEIN FORTSCHRITT</p>
     </div>
     <a routerLink="/capture" [queryParams]="{ number: next() }" class="next-card"
       ><span class="next-label">NÄCHSTE ZAHL</span><span class="next-number">{{ next() }}</span

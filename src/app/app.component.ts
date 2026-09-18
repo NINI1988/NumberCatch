@@ -1,7 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './auth.service';
-import { SyncService } from './sync.service';
 import {
   LucideGrid3x3,
   LucideMap,
@@ -48,14 +47,11 @@ import {
 })
 export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
-  private readonly sync = inject(SyncService);
   ngOnInit(): void {
-    this.sync.listen();
     void this.initialize();
   }
   private async initialize(): Promise<void> {
     await this.auth.initialize();
-    await this.sync.flush();
   }
   initials(): string {
     const name = this.auth.profile()?.display_name ?? '?';

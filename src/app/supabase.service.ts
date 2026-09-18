@@ -41,7 +41,6 @@ export class SupabaseService {
   async saveSighting(
     userId: string,
     sighting: {
-      client_id?: string;
       number: number;
       type: 'confirmed' | 'hint';
       latitude: number | null;
@@ -51,10 +50,19 @@ export class SupabaseService {
       created_at: string;
     },
   ): Promise<void> {
-    const { client_id: _clientId, ...databaseSighting } = sighting;
-    const { error } = await this.client
-      .from('sightings')
-      .insert({ user_id: userId, ...databaseSighting });
+    if (sighting.type === 'confirmed') {
+      const { data: existing, error: existingError } = await this.client
+        .from('sightings')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('number', sighting.number)
+        .eq('type', 'confirmed')
+        .limit(1)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (existing) return;
+    }
+    const { error } = await this.client.from('sightings').insert({ user_id: userId, ...sighting });
     if (error) throw error;
   }
   async updateProgress(userId: string, currentNumber: number): Promise<void> {

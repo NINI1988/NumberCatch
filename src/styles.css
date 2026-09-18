@@ -93,6 +93,9 @@ main {
   justify-content: space-between;
   align-items: start;
 }
+.numbers-heading {
+  margin-bottom: 20px;
+}
 .page h1 {
   font-size: clamp(1.8rem, 7vw, 2.8rem);
   line-height: 1.05;
@@ -182,7 +185,8 @@ main {
 .check {
   position: absolute;
   right: 4px;
-  top: 2px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 11px;
 }
 .number-cell .check {

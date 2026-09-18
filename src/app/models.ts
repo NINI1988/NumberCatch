@@ -16,16 +16,6 @@ export interface Sighting {
   note: string | null;
   created_at: string;
 }
-export interface PendingSighting {
-  client_id: string;
-  number: number;
-  type: SightingType;
-  latitude: number | null;
-  longitude: number | null;
-  accuracy: number | null;
-  note: string | null;
-  created_at: string;
-}
 export interface FriendProgress extends Profile {
   group_id: string;
 }

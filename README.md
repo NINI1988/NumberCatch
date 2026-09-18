@@ -1,6 +1,6 @@
 # NumberCatch
 
-Mobile-first Angular-PWA für die gemeinsame Suche nach Autonummern in aufsteigender Reihenfolge. Der MVP nutzt Supabase Auth/Postgres/Realtime-fähige Tabellen, MapLibre und eine kleine lokale Offline-Warteschlange.
+Mobile-first Angular-PWA für die gemeinsame Suche nach Autonummern in aufsteigender Reihenfolge. Der MVP nutzt Supabase Auth/Postgres/Realtime-fähige Tabellen und MapLibre. Funde werden bei bestehender Internetverbindung direkt in Supabase gespeichert.
 
 ## Live-App
 
@@ -24,7 +24,7 @@ Die öffentliche Supabase-URL und der Publishable Key stehen in den Angular-Envi
 
 Die RLS-Policies erlauben private Sightings nur ihrem Ersteller; Gruppenprofile werden nur über gemeinsame Gruppen sichtbar. Vollständige Kennzeichen werden nicht gespeichert.
 
-Die zusätzliche Migration `20260918000001_groups_and_avatars.sql` legt den öffentlichen Avatar-Bucket mit benutzerspezifischen Upload-Policies an und korrigiert die Gruppen-RLS-Abfragen. Offline-Funde werden nach Login bzw. bei wiederhergestellter Verbindung automatisch synchronisiert.
+Die zusätzliche Migration `20260918000001_groups_and_avatars.sql` legt den öffentlichen Avatar-Bucket mit benutzerspezifischen Upload-Policies an und korrigiert die Gruppen-RLS-Abfragen.
 
 ## GitHub Pages
 
@@ -34,4 +34,4 @@ Die zusätzliche Migration `20260918000001_groups_and_avatars.sql` legt den öff
 
 Der Workflow baut mit dem Repository-Namen als `base-href` und verwendet Hash-Routing. Für dieses Repository wird dadurch automatisch `/NumberCatch/` verwendet.
 
-Kamera/OCR ist über eine spätere `RecognitionService`-Implementierung ergänzbar; der MVP erfasst Zahlen manuell und speichert Offline-Funde lokal, bis eine Sync-Anbindung verfügbar ist.
+Kamera/OCR ist über eine spätere `RecognitionService`-Implementierung ergänzbar; der MVP erfasst Zahlen manuell und speichert sie direkt in Supabase.
