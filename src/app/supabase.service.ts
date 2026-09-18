@@ -7,7 +7,7 @@ import { GroupMember, PlayerGroup, Profile, Sighting } from './models';
 export class SupabaseService {
   readonly client: SupabaseClient = createClient(
     environment.supabaseUrl || 'https://placeholder.supabase.co',
-    environment.supabaseAnonKey || 'placeholder',
+    environment.supabasePublishableKey || 'placeholder',
   );
   async profile(userId: string): Promise<Profile | null> {
     const { data } = await this.client.from('profiles').select('*').eq('id', userId).maybeSingle();

@@ -18,10 +18,6 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: node scripts/write-environment.mjs
-        env:
-          NG_APP_SUPABASE_URL: ${{ vars.NG_APP_SUPABASE_URL }}
-          NG_APP_SUPABASE_ANON_KEY: ${{ secrets.NG_APP_SUPABASE_ANON_KEY }}
       - run: npm run build -- --base-href=/${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v3
         with: { path: dist/number-catch/browser }
