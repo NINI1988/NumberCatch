@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -6,21 +5,23 @@ import { AuthService } from './auth.service';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `<section class="auth-page">
     <div class="hero-mark">№</div>
     <h1>NumberCatch</h1>
     <p class="muted">Finde die nächste Zahl. Gemeinsam.</p>
     <form (ngSubmit)="submit()">
-      <label *ngIf="registerMode"
-        >Anzeigename<input
-          type="text"
-          name="name"
-          [(ngModel)]="name"
-          required
-          maxlength="80"
-          autocomplete="name"
-      /></label>
+      @if (registerMode) {
+        <label
+          >Anzeigename<input
+            type="text"
+            name="name"
+            [(ngModel)]="name"
+            required
+            maxlength="80"
+            autocomplete="name"
+        /></label>
+      }
       <label
         >E-Mail<input type="email" name="email" [(ngModel)]="email" required autocomplete="email"
       /></label>
@@ -36,8 +37,12 @@ import { AuthService } from './auth.service';
       <button class="primary full" type="submit">
         {{ registerMode ? 'Konto erstellen' : 'Einloggen' }}
       </button>
-      <p class="success" *ngIf="message()">{{ message() }}</p>
-      <p class="error" *ngIf="error()">{{ error() }}</p>
+      @if (message()) {
+        <p class="success">{{ message() }}</p>
+      }
+      @if (error()) {
+        <p class="error">{{ error() }}</p>
+      }
     </form>
     <button class="text-button" type="button" (click)="toggleMode()">
       {{ registerMode ? 'Schon registriert? Einloggen' : 'Noch kein Konto? Registrieren' }}

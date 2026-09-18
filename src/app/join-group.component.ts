@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from './auth.service';
@@ -6,20 +5,25 @@ import { SupabaseService } from './supabase.service';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   template: `<section class="page narrow">
     <p class="eyebrow">GRUPPENEINLADUNG</p>
     <h1>Gruppe beitreten</h1>
-    <p *ngIf="!error() && !joined()" class="muted">
-      Du wurdest zu einer NumberCatch-Gruppe eingeladen.
-    </p>
-    <p class="success" *ngIf="joined()">Du bist der Gruppe beigetreten.</p>
-    <p class="error" *ngIf="error()">{{ error() }}</p>
-    <button *ngIf="!joined() && !error()" class="primary full" (click)="join()">
-      Gruppe beitreten</button
-    ><a *ngIf="joined() || error()" routerLink="/friends" class="secondary full link-button"
-      >Zu Freunde</a
-    >
+    @if (!error() && !joined()) {
+      <p class="muted">Du wurdest zu einer NumberCatch-Gruppe eingeladen.</p>
+    }
+    @if (joined()) {
+      <p class="success">Du bist der Gruppe beigetreten.</p>
+    }
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+    @if (!joined() && !error()) {
+      <button class="primary full" (click)="join()">Gruppe beitreten</button>
+    }
+    @if (joined() || error()) {
+      <a routerLink="/friends" class="secondary full link-button">Zu Freunde</a>
+    }
   </section>`,
 })
 export class JoinGroupComponent implements OnInit {

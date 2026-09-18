@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -8,7 +7,7 @@ import { SupabaseService } from './supabase.service';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: ` <section class="page narrow">
     <p class="eyebrow">NEUER FUND</p>
     <h1>Kennzeichen erfassen</h1>
@@ -22,9 +21,9 @@ import { SupabaseService } from './supabase.service';
           class="number-input"
           type="number"
           min="1"
-          max="999"
           name="number"
           [(ngModel)]="number"
+          [disabled]="saving()"
           required
           inputmode="numeric"
         />
@@ -34,6 +33,8 @@ import { SupabaseService } from './supabase.service';
           name="note"
           [(ngModel)]="note"
           rows="2"
+          maxlength="500"
+          [disabled]="saving()"
           placeholder="z. B. Parkplatz am Bahnhof"
         ></textarea>
       </label>
@@ -47,24 +48,33 @@ import { SupabaseService } from './supabase.service';
         />
         <span>Standort speichern</span>
       </label>
-      <div class="location-status">{{ locationStatus() }}</div>
+      <div class="location-status" role="status">{{ locationStatus() }}</div>
       <button
         class="primary full"
         type="submit"
-        [disabled]="saving() || !number"
+        [disabled]="saving() || !validNumber()"
         [attr.aria-busy]="saving()"
       >
-        <span *ngIf="saving()" class="loading-spinner" aria-hidden="true"></span>
+        @if (saving()) {
+          <span class="loading-spinner" aria-hidden="true"></span>
+        }
         {{ saving() ? 'Wird gespeichert…' : buttonLabel() }}
       </button>
     </form>
-    <div *ngIf="saveMessage()" class="result-card good">
-      <h2>{{ saveMessage() }}</h2>
-    </div>
-    <div *ngIf="result() as found" class="result-card">
-      <h2>{{ message(found) }}</h2>
-      <p>{{ description(found) }}</p>
-    </div>
+    @if (saveError()) {
+      <p class="error" role="alert">{{ saveError() }}</p>
+    }
+    @if (saveMessage()) {
+      <div class="result-card good">
+        <h2>{{ saveMessage() }}</h2>
+      </div>
+    }
+    @if (result(); as found) {
+      <div class="result-card">
+        <h2>{{ message(found) }}</h2>
+        <p>{{ description(found) }}</p>
+      </div>
+    }
   </section>`,
 })
 export class CaptureComponent implements OnInit {
@@ -74,15 +84,15 @@ export class CaptureComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   readonly result = signal<CaptureResult | null>(null);
   readonly saveMessage = signal('');
+  readonly saveError = signal('');
   readonly saving = signal(false);
   readonly locationStatus = signal('Standort wird beim Speichern erfasst.');
   number: number | null = null;
   note = '';
   saveLocation = true;
-  private position: GeolocationPosition | null = null;
   ngOnInit(): void {
     const routeNumber = Number(this.route.snapshot.queryParamMap.get('number'));
-    if (Number.isInteger(routeNumber) && routeNumber >= 1 && routeNumber <= 999) {
+    if (Number.isSafeInteger(routeNumber) && routeNumber >= 1) {
       this.number = routeNumber;
     }
   }
@@ -90,12 +100,19 @@ export class CaptureComponent implements OnInit {
     return (this.auth.profile()?.current_number ?? 0) + 1;
   }
   async submit(): Promise<void> {
-    if (!this.number || this.saving()) return;
+    if (this.number === null || !this.validNumber() || this.saving()) return;
     const number = this.number;
+    const note = this.note.trim();
     const profile = this.auth.profile();
     if (!profile) return;
     this.saveMessage.set('');
-    const result = this.game.classify(this.auth.profile()?.current_number ?? 0, number);
+    this.saveError.set('');
+    this.result.set(null);
+    if (note.length > 500) {
+      this.saveError.set('Die Notiz darf höchstens 500 Zeichen enthalten.');
+      return;
+    }
+    const result = this.game.classify(profile.current_number, number);
     if (result.kind === 'done') {
       this.result.set(result);
       return;
@@ -105,30 +122,36 @@ export class CaptureComponent implements OnInit {
       this.locationStatus.set(
         this.saveLocation ? 'Standort wird erfasst …' : 'Fund wird ohne Standort gespeichert …',
       );
-      await this.capturePosition();
+      const position = this.saveLocation ? await this.capturePosition() : null;
       this.locationStatus.set('Fund wird gespeichert …');
-      await this.supabase.saveSighting(profile.id, {
+      const updatedProfile = await this.supabase.saveSighting({
         number,
         type: result.kind === 'next' ? 'confirmed' : 'hint',
-        latitude: this.position?.coords.latitude ?? null,
-        longitude: this.position?.coords.longitude ?? null,
-        accuracy: this.position?.coords.accuracy ?? null,
-        note: this.note || null,
-        created_at: new Date().toISOString(),
+        latitude: position?.coords.latitude ?? null,
+        longitude: position?.coords.longitude ?? null,
+        accuracy: position?.coords.accuracy ?? null,
+        note: note || null,
       });
-      if (result.kind === 'next') {
-        await this.supabase.updateProgress(profile.id, result.number);
-        this.auth.profile.set({ ...profile, current_number: result.number });
-      }
+      this.auth.profile.set(updatedProfile);
       this.saveMessage.set(
         result.kind === 'next'
           ? `${result.number} gespeichert – dein Fortschritt wurde erhöht.`
           : `${result.number} wurde als private Vormerkung gespeichert.`,
       );
       this.result.set(null);
-      this.locationStatus.set('Gespeichert.');
+      this.locationStatus.set(
+        position ? 'Mit Standort gespeichert.' : 'Ohne Standort gespeichert.',
+      );
       this.number = null;
       this.note = '';
+    } catch (error: unknown) {
+      const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
+      this.saveError.set(
+        code === 'NC001' || code === 'NC002' || code === '23505'
+          ? 'Dein Fortschritt hat sich geändert. Bitte lade die Seite neu und prüfe die Zahl.'
+          : 'Speichern konnte nicht bestätigt werden. Bitte prüfe deine Verbindung und lade die Funde neu, bevor du es erneut versuchst.',
+      );
+      this.locationStatus.set('Speichern beendet.');
     } finally {
       this.saving.set(false);
     }
@@ -148,34 +171,35 @@ export class CaptureComponent implements OnInit {
         : 'Diese Zahl ist bereits abgeschlossen.';
   }
   buttonLabel(): string {
-    if (!this.number) return 'Zahl eingeben';
+    if (!this.validNumber() || this.number === null) return 'Zahl eingeben';
     const kind = this.game.classify(this.auth.profile()?.current_number ?? 0, this.number).kind;
     return kind === 'next' ? 'Bestätigen' : kind === 'hint' ? 'Vormerken' : 'Bereits erledigt';
   }
+  validNumber(): boolean {
+    return this.number !== null && Number.isSafeInteger(this.number) && this.number >= 1;
+  }
   locationPreferenceChanged(): void {
     if (!this.saveLocation) {
-      this.position = null;
       this.locationStatus.set('Standort wird nicht gespeichert.');
     } else {
       this.locationStatus.set('Standort wird beim Speichern erfasst.');
     }
   }
-  private capturePosition(): Promise<void> {
-    if (!this.saveLocation || this.position || !navigator.geolocation) return Promise.resolve();
+  private capturePosition(): Promise<GeolocationPosition | null> {
+    if (!navigator.geolocation) return Promise.resolve(null);
     return new Promise((resolve) => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          this.position = position;
           this.locationStatus.set('Standort erfasst.');
-          resolve();
+          resolve(position);
         },
         () => {
           this.locationStatus.set(
             'Standort nicht verfügbar – Fund kann trotzdem gespeichert werden.',
           );
-          resolve();
+          resolve(null);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
       );
     });
   }

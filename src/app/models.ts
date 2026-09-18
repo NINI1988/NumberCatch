@@ -16,6 +16,7 @@ export interface Sighting {
   note: string | null;
   created_at: string;
 }
+export type NewSighting = Omit<Sighting, 'id' | 'user_id' | 'created_at'>;
 export interface FriendProgress extends Profile {
   group_id: string;
 }

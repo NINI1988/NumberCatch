@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../environments/environment';
-import { GroupMember, PlayerGroup, Profile, Sighting } from './models';
+import { GroupMember, NewSighting, PlayerGroup, Profile, Sighting } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class SupabaseService {
@@ -38,39 +38,20 @@ export class SupabaseService {
     if (error) throw error;
     return (data ?? []) as Sighting[];
   }
-  async saveSighting(
-    userId: string,
-    sighting: {
-      number: number;
-      type: 'confirmed' | 'hint';
-      latitude: number | null;
-      longitude: number | null;
-      accuracy: number | null;
-      note: string | null;
-      created_at: string;
-    },
-  ): Promise<void> {
-    if (sighting.type === 'confirmed') {
-      const { data: existing, error: existingError } = await this.client
-        .from('sightings')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('number', sighting.number)
-        .eq('type', 'confirmed')
-        .limit(1)
-        .maybeSingle();
-      if (existingError) throw existingError;
-      if (existing) return;
-    }
-    const { error } = await this.client.from('sightings').insert({ user_id: userId, ...sighting });
+  async saveSighting(sighting: NewSighting): Promise<Profile> {
+    const { data, error } = await this.client
+      .rpc('capture_sighting', {
+        p_number: sighting.number,
+        p_type: sighting.type,
+        p_latitude: sighting.latitude,
+        p_longitude: sighting.longitude,
+        p_accuracy: sighting.accuracy,
+        p_note: sighting.note,
+      })
+      .single<Profile>();
     if (error) throw error;
-  }
-  async updateProgress(userId: string, currentNumber: number): Promise<void> {
-    const { error } = await this.client
-      .from('profiles')
-      .update({ current_number: currentNumber, updated_at: new Date().toISOString() })
-      .eq('id', userId);
-    if (error) throw error;
+    if (!data) throw new Error('Fund konnte nicht gespeichert werden.');
+    return data;
   }
   async groups(userId: string): Promise<PlayerGroup[]> {
     const { data, error } = await this.client
@@ -147,10 +128,14 @@ export class SupabaseService {
     if (error) throw error;
     const { data } = this.client.storage.from('avatars').getPublicUrl(path);
     const publicUrl = `${data.publicUrl}?v=${Date.now()}`;
-    await this.client
+    const { data: profile, error: profileError } = await this.client
       .from('profiles')
       .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select('id')
+      .single();
+    if (profileError) throw profileError;
+    if (!profile) throw new Error('Avatar konnte nicht gespeichert werden.');
     return publicUrl;
   }
   async updateProfile(userId: string, displayName: string): Promise<void> {

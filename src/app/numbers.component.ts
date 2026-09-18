@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from './auth.service';
-import { GameService, visibleNumberLimit } from './game.service';
+import { visibleNumberLimit } from './game.service';
 import { Profile } from './models';
 import { SupabaseService } from './supabase.service';
 import { LucideCheck } from '@lucide/angular';
@@ -30,22 +30,24 @@ import { LucideCheck } from '@lucide/angular';
           [class.next-cell]="number === next()"
         >
           <span class="number-label">{{ number }}</span>
-          <div class="number-players" *ngIf="playersAt(number) as players">
-            <span class="number-player" *ngFor="let player of players">
-              <button
-                type="button"
-                class="number-avatar"
-                [class.own-avatar]="player.id === profile()?.id"
-                [attr.aria-label]="player.display_name"
-                [style.background-image]="
-                  player.avatar_url ? 'url(' + player.avatar_url + ')' : null
-                "
-              >
-                {{ player.avatar_url ? '' : initials(player.display_name) }}
-              </button>
-              <span class="player-name">{{ player.display_name }}</span>
-            </span>
-          </div>
+          @if (playersAt(number); as players) {
+            <div class="number-players">
+              <span class="number-player" *ngFor="let player of players">
+                <button
+                  type="button"
+                  class="number-avatar"
+                  [class.own-avatar]="player.id === profile()?.id"
+                  [attr.aria-label]="player.display_name"
+                  [style.background-image]="
+                    player.avatar_url ? 'url(' + player.avatar_url + ')' : null
+                  "
+                >
+                  {{ player.avatar_url ? '' : initials(player.display_name) }}
+                </button>
+                <span class="player-name">{{ player.display_name }}</span>
+              </span>
+            </div>
+          }
           @if (number === next()) {
             <small>gesucht</small>
           }
@@ -59,7 +61,6 @@ import { LucideCheck } from '@lucide/angular';
 })
 export class NumbersComponent implements OnInit {
   private readonly auth = inject(AuthService);
-  private readonly game = inject(GameService);
   private readonly supabase = inject(SupabaseService);
   readonly profile = computed(() => this.auth.profile());
   readonly current = computed(() => this.auth.profile()?.current_number ?? 0);
@@ -81,9 +82,10 @@ export class NumbersComponent implements OnInit {
       const members = (
         await Promise.all(groups.map((group) => this.supabase.members(group.id)))
       ).flat();
-      this.friends.set(
-        members.filter((member) => member.user_id !== userId).map((member) => member.profile),
-      );
+      const profiles = members
+        .filter((member) => member.user_id !== userId)
+        .map((member) => member.profile);
+      this.friends.set([...new Map(profiles.map((profile) => [profile.id, profile])).values()]);
     } catch {
       /* The personal overview remains usable when friends are offline. */
     }

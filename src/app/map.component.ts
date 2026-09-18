@@ -34,53 +34,59 @@ type SightingStatus = 'confirmed' | 'fresh' | 'old' | 'stale';
       <button type="button" class="reset-filter" (click)="showAllStatuses()">Alle</button>
     </div>
     <p class="muted map-note">Nur du siehst die GPS-Standorte deiner eigenen Funde.</p>
-    <p class="error" *ngIf="loadError()">{{ loadError() }}</p>
-    <div class="sighting-list" *ngIf="sightings().length; else noSightings">
-      <h2>Funde</h2>
-      <p class="muted" *ngIf="!visibleSightings().length">Keine Funde für diese Filter.</p>
-      <div
-        class="sighting-row"
-        *ngFor="let sighting of visibleSightings()"
-        (click)="focus(sighting)"
-        role="button"
-        tabindex="0"
-        (keydown.enter)="focus(sighting)"
-      >
-        <span class="sighting-number" [ngClass]="statusClass(sighting)">{{ sighting.number }}</span>
-        <svg
-          *ngIf="sighting.latitude !== null && sighting.longitude !== null"
-          class="sighting-location"
-          lucideMapPin
-          aria-label="Standort vorhanden"
-        ></svg>
-        <span class="sighting-details"
-          ><strong>{{
-            sighting.type === 'confirmed' ? 'Bestätigt' : ageLabel(sighting.created_at)
-          }}</strong
-          ><small
-            >{{ sighting.created_at | date: 'dd.MM.yyyy, HH:mm' }} Uhr<span *ngIf="sighting.note">
-              · {{ sighting.note }}</span
-            ></small
-          ></span
+    @if (loadError()) {
+      <p class="error">{{ loadError() }}</p>
+    }
+    @if (sightings().length) {
+      <div class="sighting-list">
+        <h2>Funde</h2>
+        @if (!visibleSightings().length) {
+          <p class="muted">Keine Funde für diese Filter.</p>
+        }
+        <div
+          class="sighting-row"
+          *ngFor="let sighting of visibleSightings()"
+          (click)="focus(sighting)"
+          role="button"
+          tabindex="0"
+          (keydown.enter)="focus(sighting)"
         >
-        <button
-          *ngIf="sighting.type === 'hint'"
-          class="delete-button"
-          type="button"
-          (click)="remove(sighting, $event)"
-          aria-label="Vormerkung löschen"
-          title="Vormerkung löschen"
-        >
-          <svg lucideTrash></svg>
-        </button>
+          <span class="sighting-number" [ngClass]="statusClass(sighting)">{{
+            sighting.number
+          }}</span>
+          @if (sighting.latitude !== null && sighting.longitude !== null) {
+            <svg class="sighting-location" lucideMapPin aria-label="Standort vorhanden"></svg>
+          }
+          <span class="sighting-details"
+            ><strong>{{
+              sighting.type === 'confirmed' ? 'Bestätigt' : ageLabel(sighting.created_at)
+            }}</strong
+            ><small
+              >{{ sighting.created_at | date: 'dd.MM.yyyy, HH:mm' }} Uhr
+              @if (sighting.note) {
+                <span> · {{ sighting.note }}</span>
+              }
+            </small></span
+          >
+          @if (sighting.type === 'hint') {
+            <button
+              class="delete-button"
+              type="button"
+              (click)="remove(sighting, $event)"
+              aria-label="Vormerkung löschen"
+              title="Vormerkung löschen"
+            >
+              <svg lucideTrash></svg>
+            </button>
+          }
+        </div>
       </div>
-    </div>
-    <ng-template #noSightings
-      ><div class="empty-state compact">
+    } @else {
+      <div class="empty-state compact">
         <h2>Noch keine Funde</h2>
         <p class="muted">Spätere Zahlen kannst du beim Erfassen vormerken.</p>
-      </div></ng-template
-    >
+      </div>
+    }
   </section>`,
 })
 export class MapComponent implements AfterViewInit {

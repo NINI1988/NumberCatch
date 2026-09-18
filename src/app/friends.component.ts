@@ -34,55 +34,61 @@ import { LucideTrash, LucideUsers } from '@lucide/angular';
         aria-label="Gruppen-ID"
       /><button class="secondary" (click)="join()">Gruppe beitreten</button>
     </div>
-    <p class="error" *ngIf="error()">{{ error() }}</p>
-    <div class="group-list" *ngIf="groups().length; else empty">
-      <button
-        *ngFor="let group of groups()"
-        class="group-tab"
-        [class.selected]="selected()?.id === group.id"
-        (click)="select(group)"
-      >
-        {{ group.name }}
-      </button>
-    </div>
-    <div class="invite-actions" *ngIf="selected()">
-      <button class="secondary" (click)="copyGroupLink()">Gruppenlink kopieren</button>
-      <button
-        *ngIf="selected()?.created_by === auth.profile()?.id"
-        class="danger-button"
-        type="button"
-        (click)="deleteSelected()"
-      >
-        <svg lucideTrash></svg>Gruppe löschen
-      </button>
-    </div>
-    <p class="success" *ngIf="inviteMessage()">{{ inviteMessage() }}</p>
-    <ng-template #empty
-      ><div class="empty-state">
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+    @if (groups().length) {
+      <div class="group-list">
+        <button
+          *ngFor="let group of groups()"
+          class="group-tab"
+          [class.selected]="selected()?.id === group.id"
+          (click)="select(group)"
+        >
+          {{ group.name }}
+        </button>
+      </div>
+    } @else {
+      <div class="empty-state">
         <svg class="empty-icon" lucideUsers></svg>
         <h2>Noch keine Gruppe</h2>
         <p class="muted">Erstelle eine Gruppe oder tritt mit einer Gruppen-ID bei.</p>
-      </div></ng-template
-    >
-    <div class="member-list" *ngIf="selected()">
-      <p class="muted group-summary">
-        {{ members().length }} {{ members().length === 1 ? 'Mitglied' : 'Mitglieder' }}
-      </p>
-      <div class="member-row" *ngFor="let member of members()">
-        <div
-          class="avatar"
-          [style.background-image]="
-            member.profile.avatar_url ? 'url(' + member.profile.avatar_url + ')' : null
-          "
-        >
-          {{ member.profile.avatar_url ? '' : initials(member.profile.display_name) }}
-        </div>
-        <div>
-          <strong>{{ member.profile.display_name }}</strong
-          ><small class="muted">{{ member.profile.current_number }} abgeschlossen</small>
+      </div>
+    }
+    @if (selected()) {
+      <div class="invite-actions">
+        <button class="secondary" (click)="copyGroupLink()">Gruppenlink kopieren</button>
+        @if (selected()?.created_by === auth.profile()?.id) {
+          <button class="danger-button" type="button" (click)="deleteSelected()">
+            <svg lucideTrash></svg>Gruppe löschen
+          </button>
+        }
+      </div>
+    }
+    @if (inviteMessage()) {
+      <p class="success">{{ inviteMessage() }}</p>
+    }
+    @if (selected()) {
+      <div class="member-list">
+        <p class="muted group-summary">
+          {{ members().length }} {{ members().length === 1 ? 'Mitglied' : 'Mitglieder' }}
+        </p>
+        <div class="member-row" *ngFor="let member of members()">
+          <div
+            class="avatar"
+            [style.background-image]="
+              member.profile.avatar_url ? 'url(' + member.profile.avatar_url + ')' : null
+            "
+          >
+            {{ member.profile.avatar_url ? '' : initials(member.profile.display_name) }}
+          </div>
+          <div>
+            <strong>{{ member.profile.display_name }}</strong
+            ><small class="muted">{{ member.profile.current_number }} abgeschlossen</small>
+          </div>
         </div>
       </div>
-    </div>
+    }
   </section>`,
 })
 export class FriendsComponent implements OnInit {

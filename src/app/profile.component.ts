@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from './auth.service';
@@ -7,7 +6,7 @@ import { LucideLogOut } from '@lucide/angular';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideLogOut],
+  imports: [FormsModule, LucideLogOut],
   template: `<section class="page narrow">
     <p class="eyebrow">DEIN KONTO</p>
     <h1>Profil</h1>
@@ -18,14 +17,12 @@ import { LucideLogOut } from '@lucide/angular';
           auth.profile()?.avatar_url ? 'url(' + auth.profile()?.avatar_url + ')' : null
         "
       >
-        <span
-          *ngIf="uploading()"
-          class="loading-spinner"
-          aria-label="Avatar wird hochgeladen"
-        ></span>
-        <ng-container *ngIf="!uploading()">
+        @if (uploading()) {
+          <span class="loading-spinner" aria-label="Avatar wird hochgeladen"></span>
+        }
+        @if (!uploading()) {
           {{ auth.profile()?.avatar_url ? '' : initials() }}
-        </ng-container>
+        }
       </div>
       <label class="upload-label" [class.disabled]="uploading()"
         >Avatar ändern<input
@@ -35,7 +32,9 @@ import { LucideLogOut } from '@lucide/angular';
           (change)="upload($event)" /></label
       ><label>Anzeigename<input [(ngModel)]="name" maxlength="80" /></label
       ><button class="primary full" (click)="save()">Profil speichern</button>
-      <p class="muted" *ngIf="message">{{ message }}</p>
+      @if (message) {
+        <p class="muted">{{ message }}</p>
+      }
     </div>
     <button class="secondary full" (click)="logout()"><svg lucideLogOut></svg>Ausloggen</button>
   </section>`,
