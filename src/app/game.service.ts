@@ -16,7 +16,10 @@ export class GameService {
   queueKey = 'number-catch-pending';
   pending(): PendingSighting[] {
     try {
-      return JSON.parse(localStorage.getItem(this.queueKey) ?? '[]') as PendingSighting[];
+      const items = JSON.parse(localStorage.getItem(this.queueKey) ?? '[]') as Array<
+        Partial<PendingSighting>
+      >;
+      return items.map((item) => ({ ...item, type: item.type ?? 'hint' }) as PendingSighting);
     } catch {
       return [];
     }

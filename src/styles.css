@@ -482,3 +482,57 @@ textarea {
   font-weight: 800;
   margin-left: -2px;
 }
+.sighting-list {
+  margin-top: 28px;
+}
+.sighting-list h2 {
+  margin-bottom: 10px;
+}
+.sighting-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid #e6edf3;
+  background: #fff;
+  padding: 13px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.sighting-number {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 12px;
+  background: #e6f6ee;
+  color: #1f7a50;
+  font-weight: 900;
+}
+.sighting-details {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  flex: 1;
+}
+.sighting-details small {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.delete-button {
+  border: 0;
+  background: transparent;
+  color: #b42318;
+  padding: 8px;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+.empty-state.compact {
+  margin-top: 28px;
+  padding: 24px 18px;
+}

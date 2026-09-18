@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from './auth.service';
 import { GameService } from './game.service';
@@ -59,7 +59,7 @@ export class NumbersComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly game = inject(GameService);
   private readonly supabase = inject(SupabaseService);
-  readonly current = signal(0);
+  readonly current = computed(() => this.auth.profile()?.current_number ?? 0);
   readonly friends = signal<Profile[]>([]);
   readonly numbers = Array.from({ length: 999 }, (_, index) => index + 1);
   async ngOnInit(): Promise<void> {

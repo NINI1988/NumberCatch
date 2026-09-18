@@ -10,21 +10,39 @@ export class SupabaseService {
     environment.supabasePublishableKey || 'placeholder',
   );
   async profile(userId: string): Promise<Profile | null> {
-    const { data } = await this.client.from('profiles').select('*').eq('id', userId).maybeSingle();
+    const { data, error } = await this.client
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) throw error;
     return data as Profile | null;
   }
+  async ensureProfile(userId: string, displayName: string): Promise<Profile> {
+    const existing = await this.profile(userId);
+    if (existing) return existing;
+    const { data, error } = await this.client
+      .from('profiles')
+      .insert({ id: userId, display_name: displayName.trim() || 'Spieler' })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as Profile;
+  }
   async ownSightings(userId: string): Promise<Sighting[]> {
-    const { data } = await this.client
+    const { data, error } = await this.client
       .from('sightings')
       .select('*')
       .eq('user_id', userId)
       .eq('type', 'hint')
       .order('created_at', { ascending: false });
+    if (error) throw error;
     return (data ?? []) as Sighting[];
   }
   async saveSighting(
     userId: string,
     sighting: {
+      client_id?: string;
       number: number;
       type: 'confirmed' | 'hint';
       latitude: number | null;
@@ -34,7 +52,10 @@ export class SupabaseService {
       created_at: string;
     },
   ): Promise<void> {
-    const { error } = await this.client.from('sightings').insert({ user_id: userId, ...sighting });
+    const { client_id: _clientId, ...databaseSighting } = sighting;
+    const { error } = await this.client
+      .from('sightings')
+      .insert({ user_id: userId, ...databaseSighting });
     if (error) throw error;
   }
   async updateProgress(userId: string, currentNumber: number): Promise<void> {
@@ -102,6 +123,14 @@ export class SupabaseService {
       .from('profiles')
       .update({ display_name: displayName.trim(), updated_at: new Date().toISOString() })
       .eq('id', userId);
+    if (error) throw error;
+  }
+  async deleteSighting(userId: string, sightingId: string): Promise<void> {
+    const { error } = await this.client
+      .from('sightings')
+      .delete()
+      .eq('id', sightingId)
+      .eq('user_id', userId);
     if (error) throw error;
   }
   watchGroupProfiles(groupId: string, onChange: () => void): () => void {

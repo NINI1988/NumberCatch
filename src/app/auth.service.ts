@@ -8,9 +8,17 @@ export class AuthService {
   readonly authenticated = signal(false);
   constructor(private readonly supabase: SupabaseService) {}
   async signIn(email: string, password: string): Promise<string | null> {
-    const { error } = await this.supabase.client.auth.signInWithPassword({ email, password });
-    if (!error) this.authenticated.set(true);
-    return error?.message ?? null;
+    const { data, error } = await this.supabase.client.auth.signInWithPassword({ email, password });
+    if (error || !data.user) return error?.message ?? 'Anmeldung fehlgeschlagen.';
+    try {
+      this.profile.set(await this.supabase.ensureProfile(data.user.id, email.split('@')[0]));
+      this.authenticated.set(true);
+      return null;
+    } catch (profileError) {
+      return profileError instanceof Error
+        ? profileError.message
+        : 'Profil konnte nicht geladen werden.';
+    }
   }
   async signUp(email: string, password: string, name: string): Promise<string | null> {
     const { data, error } = await this.supabase.client.auth.signUp({
@@ -20,12 +28,7 @@ export class AuthService {
     });
     if (!error && data.user && data.session) {
       this.authenticated.set(true);
-      this.profile.set({
-        id: data.user.id,
-        display_name: name,
-        avatar_url: null,
-        current_number: 0,
-      });
+      this.profile.set(await this.supabase.ensureProfile(data.user.id, name));
     }
     return error?.message ?? null;
   }
@@ -37,6 +40,6 @@ export class AuthService {
   async initialize(): Promise<void> {
     const { data } = await this.supabase.client.auth.getUser();
     this.authenticated.set(Boolean(data.user));
-    if (data.user) this.profile.set(await this.supabase.profile(data.user.id));
+    if (data.user) this.profile.set(await this.supabase.ensureProfile(data.user.id, 'Spieler'));
   }
 }
