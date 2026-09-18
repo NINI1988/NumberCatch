@@ -96,6 +96,17 @@ export class SupabaseService {
       .insert({ group_id: groupId, user_id: userId });
     if (error && error.code !== '23505') throw error;
   }
+  async deleteGroup(groupId: string, userId: string): Promise<void> {
+    const { data, error } = await this.client
+      .from('groups')
+      .delete()
+      .eq('id', groupId)
+      .eq('created_by', userId)
+      .select('id')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error('Fehler beim Löschen der Gruppe.');
+  }
   async members(groupId: string): Promise<GroupMember[]> {
     const { data, error } = await this.client
       .from('group_members')

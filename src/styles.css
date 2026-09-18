@@ -302,6 +302,22 @@ textarea {
   background: #d9eaf7;
   color: var(--navy);
 }
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 12px;
+  padding: 15px 18px;
+  background: #fbe4e4;
+  color: #a33a3a;
+  font-weight: 800;
+  cursor: pointer;
+}
+.danger-button svg {
+  width: 17px;
+  height: 17px;
+}
 .full {
   width: 100%;
 }

@@ -4,11 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from './auth.service';
 import { GroupMember, PlayerGroup } from './models';
 import { SupabaseService } from './supabase.service';
-import { LucideUsers } from '@lucide/angular';
+import { LucideTrash, LucideUsers } from '@lucide/angular';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideUsers],
+  imports: [CommonModule, FormsModule, LucideTrash, LucideUsers],
   template: `<section class="page">
     <p class="eyebrow">DEINE GRUPPE</p>
     <h1>Freunde</h1>
@@ -47,6 +47,14 @@ import { LucideUsers } from '@lucide/angular';
     </div>
     <div class="invite-actions" *ngIf="selected()">
       <button class="secondary" (click)="copyGroupLink()">Gruppenlink kopieren</button>
+      <button
+        *ngIf="selected()?.created_by === auth.profile()?.id"
+        class="danger-button"
+        type="button"
+        (click)="deleteSelected()"
+      >
+        <svg lucideTrash></svg>Gruppe löschen
+      </button>
       <input
         *ngIf="inviteUrl()"
         [value]="inviteUrl()"
@@ -85,7 +93,7 @@ import { LucideUsers } from '@lucide/angular';
   </section>`,
 })
 export class FriendsComponent implements OnInit {
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
   private readonly supabase = inject(SupabaseService);
   readonly groups = signal<PlayerGroup[]>([]);
   readonly members = signal<GroupMember[]>([]);
@@ -106,6 +114,10 @@ export class FriendsComponent implements OnInit {
       const groups = await this.supabase.groups(userId);
       this.groups.set(groups);
       if (groups.length) await this.select(groups[0]);
+      else {
+        this.selected.set(null);
+        this.members.set([]);
+      }
     } catch (error) {
       this.error.set(
         error instanceof Error ? error.message : 'Gruppen konnten nicht geladen werden.',
@@ -165,6 +177,22 @@ export class FriendsComponent implements OnInit {
     } catch (error) {
       this.error.set(
         error instanceof Error ? error.message : 'Einladung konnte nicht erstellt werden.',
+      );
+    }
+  }
+  async deleteSelected(): Promise<void> {
+    const group = this.selected();
+    const userId = this.auth.profile()?.id;
+    if (!group || !userId || group.created_by !== userId) return;
+    if (!window.confirm(`Gruppe „${group.name}“ wirklich löschen?`)) return;
+    try {
+      await this.supabase.deleteGroup(group.id, userId);
+      this.stopRealtime?.();
+      this.stopRealtime = undefined;
+      await this.load();
+    } catch (error) {
+      this.error.set(
+        error instanceof Error ? error.message : 'Gruppe konnte nicht gelöscht werden.',
       );
     }
   }
