@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { Sighting } from './models';
 import { SupabaseService } from './supabase.service';
 import maplibregl, { Map } from 'maplibre-gl';
+import { environment } from '../environments/environment';
 
 @Component({
   standalone: true,
@@ -29,7 +30,7 @@ export class MapComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     this.map = new maplibregl.Map({
       container: this.mapElement.nativeElement,
-      style: 'https://demotiles.maplibre.org/style.json',
+      style: environment.mapStyleUrl,
       center: [10.45, 51.16],
       zoom: 5,
     });

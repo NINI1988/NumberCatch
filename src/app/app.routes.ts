@@ -5,14 +5,15 @@ import { CaptureComponent } from './capture.component';
 import { MapComponent } from './map.component';
 import { FriendsComponent } from './friends.component';
 import { ProfileComponent } from './profile.component';
+import { authGuard } from './auth.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
-  { path: 'numbers', component: NumbersComponent },
-  { path: 'capture', component: CaptureComponent },
-  { path: 'map', component: MapComponent },
-  { path: 'friends', component: FriendsComponent },
-  { path: 'profile', component: ProfileComponent },
+  { path: 'numbers', component: NumbersComponent, canActivate: [authGuard] },
+  { path: 'capture', component: CaptureComponent, canActivate: [authGuard] },
+  { path: 'map', component: MapComponent, canActivate: [authGuard] },
+  { path: 'friends', component: FriendsComponent, canActivate: [authGuard] },
+  { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
   { path: '', pathMatch: 'full', redirectTo: 'numbers' },
   { path: '**', redirectTo: 'numbers' },
 ];
