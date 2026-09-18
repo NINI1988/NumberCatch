@@ -274,6 +274,26 @@ textarea {
   background: var(--blue);
   color: #fff;
 }
+.primary:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+.loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 7px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .secondary {
   background: #d9eaf7;
   color: var(--navy);
@@ -403,6 +423,7 @@ textarea {
   }
 }
 .profile-avatar,
+.avatar-small,
 .avatar {
   background-size: cover;
   background-position: center;

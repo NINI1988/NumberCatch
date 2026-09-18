@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from './auth.service';
 import { CaptureResult, GameService } from './game.service';
 import { SyncService } from './sync.service';
@@ -18,7 +18,7 @@ import { LucideArrowLeft } from '@lucide/angular';
       Deine nächste Zahl ist <strong>{{ next() }}</strong
       >.
     </p>
-    <form (ngSubmit)="check()">
+    <form (ngSubmit)="submit()">
       <div class="big-label">
         Welche Zahl hast du gesehen?<input
           class="number-input"
@@ -40,43 +40,81 @@ import { LucideArrowLeft } from '@lucide/angular';
         ></textarea>
       </label>
       <div class="location-status">{{ locationStatus() }}</div>
-      <button class="primary full" type="submit">Prüfen</button>
+      <button class="primary full" type="submit" [disabled]="saving()" [attr.aria-busy]="saving()">
+        <span *ngIf="saving()" class="loading-spinner" aria-hidden="true"></span>
+        {{ saving() ? 'Speichern…' : 'Speichern' }}
+      </button>
     </form>
-    <div *ngIf="result() as found" class="result-card" [class.good]="found.kind === 'next'">
+    <div *ngIf="saveMessage()" class="result-card good">
+      <h2>{{ saveMessage() }}</h2>
+    </div>
+    <div *ngIf="result() as found" class="result-card">
       <h2>{{ message(found) }}</h2>
       <p>{{ description(found) }}</p>
-      <button *ngIf="found.kind !== 'done'" class="primary full" (click)="confirm(found)">
-        {{ found.kind === 'next' ? 'Fortschritt bestätigen' : 'Vormerkung speichern' }}
-      </button>
     </div>
   </section>`,
 })
-export class CaptureComponent {
+export class CaptureComponent implements OnInit {
   private readonly game = inject(GameService);
   private readonly auth = inject(AuthService);
   private readonly sync = inject(SyncService);
+  private readonly route = inject(ActivatedRoute);
   readonly result = signal<CaptureResult | null>(null);
+  readonly saveMessage = signal('');
+  readonly saving = signal(false);
   readonly locationStatus = signal('Standort wird beim Speichern erfasst.');
   number: number | null = null;
   note = '';
   private position: GeolocationPosition | null = null;
+  ngOnInit(): void {
+    const routeNumber = Number(this.route.snapshot.queryParamMap.get('number'));
+    if (Number.isInteger(routeNumber) && routeNumber >= 1 && routeNumber <= 999) {
+      this.number = routeNumber;
+    }
+  }
   next(): number {
     return (this.auth.profile()?.current_number ?? 0) + 1;
   }
-  check(): void {
-    if (!this.number) return;
-    this.result.set(this.game.classify(this.auth.profile()?.current_number ?? 0, this.number));
-    if (navigator.geolocation)
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          this.position = position;
-          this.locationStatus.set('Standort erfasst.');
-        },
-        () =>
-          this.locationStatus.set(
-            'Standort nicht verfügbar – Fund kann trotzdem gespeichert werden.',
-          ),
+  async submit(): Promise<void> {
+    if (!this.number || this.saving()) return;
+    const number = this.number;
+    this.saveMessage.set('');
+    const result = this.game.classify(this.auth.profile()?.current_number ?? 0, number);
+    if (result.kind === 'done') {
+      this.result.set(result);
+      return;
+    }
+    this.saving.set(true);
+    try {
+      this.locationStatus.set('Standort wird erfasst …');
+      await this.capturePosition();
+      this.locationStatus.set('Fund wird gespeichert …');
+      this.game.enqueue({
+        number,
+        type: result.kind === 'next' ? 'confirmed' : 'hint',
+        latitude: this.position?.coords.latitude ?? null,
+        longitude: this.position?.coords.longitude ?? null,
+        accuracy: this.position?.coords.accuracy ?? null,
+        note: this.note || null,
+        created_at: new Date().toISOString(),
+      });
+      if (result.kind === 'next') {
+        const profile = this.auth.profile();
+        if (profile) this.auth.profile.set({ ...profile, current_number: result.number });
+      }
+      await this.sync.flush();
+      this.saveMessage.set(
+        result.kind === 'next'
+          ? `${result.number} gespeichert – dein Fortschritt wurde erhöht.`
+          : `${result.number} wurde als private Vormerkung gespeichert.`,
       );
+      this.result.set(null);
+      this.locationStatus.set('Gespeichert – wird synchronisiert, sobald Netz verfügbar ist.');
+      this.number = null;
+      this.note = '';
+    } finally {
+      this.saving.set(false);
+    }
   }
   message(result: CaptureResult): string {
     return result.kind === 'next'
@@ -92,24 +130,23 @@ export class CaptureComponent {
         ? 'Der Fund wird als private Vormerkung gespeichert.'
         : 'Diese Zahl ist bereits abgeschlossen.';
   }
-  async confirm(result: CaptureResult): Promise<void> {
-    if (!this.number || result.kind === 'done') return;
-    this.game.enqueue({
-      number: this.number,
-      type: result.kind === 'next' ? 'confirmed' : 'hint',
-      latitude: this.position?.coords.latitude ?? null,
-      longitude: this.position?.coords.longitude ?? null,
-      accuracy: this.position?.coords.accuracy ?? null,
-      note: this.note || null,
-      created_at: new Date().toISOString(),
+  private capturePosition(): Promise<void> {
+    if (this.position || !navigator.geolocation) return Promise.resolve();
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          this.position = position;
+          this.locationStatus.set('Standort erfasst.');
+          resolve();
+        },
+        () => {
+          this.locationStatus.set(
+            'Standort nicht verfügbar – Fund kann trotzdem gespeichert werden.',
+          );
+          resolve();
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+      );
     });
-    if (result.kind === 'next') {
-      const profile = this.auth.profile();
-      if (profile) this.auth.profile.set({ ...profile, current_number: result.number });
-    }
-    await this.sync.flush();
-    this.result.set(null);
-    this.locationStatus.set('Gespeichert – wird synchronisiert, sobald Netz verfügbar ist.');
-    this.number = null;
   }
 }

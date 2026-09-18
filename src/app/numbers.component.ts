@@ -27,7 +27,7 @@ import { LucideCheck } from '@lucide/angular';
         >{{ profile()?.avatar_url ? '' : initials() }}</a
       >
     </div>
-    <a routerLink="/capture" class="next-card"
+    <a routerLink="/capture" [queryParams]="{ number: next() }" class="next-card"
       ><span class="next-label">NÄCHSTE ZAHL</span><span class="next-number">{{ next() }}</span
       ><span>Jetzt erfassen →</span></a
     >

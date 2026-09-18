@@ -128,11 +128,12 @@ export class SupabaseService {
       .upload(path, file, { upsert: true, contentType: file.type });
     if (error) throw error;
     const { data } = this.client.storage.from('avatars').getPublicUrl(path);
+    const publicUrl = `${data.publicUrl}?v=${Date.now()}`;
     await this.client
       .from('profiles')
-      .update({ avatar_url: data.publicUrl, updated_at: new Date().toISOString() })
+      .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
       .eq('id', userId);
-    return data.publicUrl;
+    return publicUrl;
   }
   async updateProfile(userId: string, displayName: string): Promise<void> {
     const { error } = await this.client

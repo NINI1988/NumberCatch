@@ -27,7 +27,14 @@ import {
     <header class="topbar">
       <a routerLink="/numbers" class="brand"
         ><span class="brand-mark">№</span><span>NumberCatch</span></a
-      ><a routerLink="/profile" class="avatar-small">{{ initials() }}</a>
+      ><a
+        routerLink="/profile"
+        class="avatar-small"
+        [style.background-image]="
+          auth.profile()?.avatar_url ? 'url(' + auth.profile()?.avatar_url + ')' : null
+        "
+        >{{ auth.profile()?.avatar_url ? '' : initials() }}</a
+      >
     </header>
     <main><router-outlet /></main>
     <nav class="bottom-nav" aria-label="Hauptnavigation">
