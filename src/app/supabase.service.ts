@@ -1,0 +1,116 @@
+import { Injectable } from '@angular/core';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { environment } from '../environments/environment';
+import { GroupMember, PlayerGroup, Profile, Sighting } from './models';
+
+@Injectable({ providedIn: 'root' })
+export class SupabaseService {
+  readonly client: SupabaseClient = createClient(
+    environment.supabaseUrl || 'https://placeholder.supabase.co',
+    environment.supabaseAnonKey || 'placeholder',
+  );
+  async profile(userId: string): Promise<Profile | null> {
+    const { data } = await this.client.from('profiles').select('*').eq('id', userId).maybeSingle();
+    return data as Profile | null;
+  }
+  async ownSightings(userId: string): Promise<Sighting[]> {
+    const { data } = await this.client
+      .from('sightings')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('type', 'hint')
+      .order('created_at', { ascending: false });
+    return (data ?? []) as Sighting[];
+  }
+  async saveSighting(
+    userId: string,
+    sighting: {
+      number: number;
+      type: 'confirmed' | 'hint';
+      latitude: number | null;
+      longitude: number | null;
+      accuracy: number | null;
+      note: string | null;
+      created_at: string;
+    },
+  ): Promise<void> {
+    const { error } = await this.client.from('sightings').insert({ user_id: userId, ...sighting });
+    if (error) throw error;
+  }
+  async updateProgress(userId: string, currentNumber: number): Promise<void> {
+    const { error } = await this.client
+      .from('profiles')
+      .update({ current_number: currentNumber, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+    if (error) throw error;
+  }
+  async groups(userId: string): Promise<PlayerGroup[]> {
+    const { data, error } = await this.client
+      .from('groups')
+      .select('id,name,created_by,created_at,group_members!inner(user_id)')
+      .eq('group_members.user_id', userId);
+    if (error) throw error;
+    return (data ?? []).map(({ group_members: _members, ...group }) => group as PlayerGroup);
+  }
+  async createGroup(userId: string, name: string): Promise<PlayerGroup> {
+    const { data, error } = await this.client
+      .from('groups')
+      .insert({ name, created_by: userId })
+      .select('id,name,created_by,created_at')
+      .single();
+    if (error) throw error;
+    await this.joinGroup(data.id, userId);
+    return data as PlayerGroup;
+  }
+  async joinGroup(groupId: string, userId: string): Promise<void> {
+    const { error } = await this.client
+      .from('group_members')
+      .insert({ group_id: groupId, user_id: userId });
+    if (error && error.code !== '23505') throw error;
+  }
+  async members(groupId: string): Promise<GroupMember[]> {
+    const { data, error } = await this.client
+      .from('group_members')
+      .select(
+        'group_id,user_id,joined_at,profiles!inner(id,display_name,avatar_url,current_number)',
+      )
+      .eq('group_id', groupId);
+    if (error) throw error;
+    return (data ?? []).map((item) => ({
+      group_id: item.group_id as string,
+      user_id: item.user_id as string,
+      joined_at: item.joined_at as string,
+      profile: item.profiles as unknown as Profile,
+    }));
+  }
+  async uploadAvatar(userId: string, file: File): Promise<string> {
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const path = `${userId}/avatar.${extension}`;
+    const { error } = await this.client.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (error) throw error;
+    const { data } = this.client.storage.from('avatars').getPublicUrl(path);
+    await this.client
+      .from('profiles')
+      .update({ avatar_url: data.publicUrl, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+    return data.publicUrl;
+  }
+  async updateProfile(userId: string, displayName: string): Promise<void> {
+    const { error } = await this.client
+      .from('profiles')
+      .update({ display_name: displayName.trim(), updated_at: new Date().toISOString() })
+      .eq('id', userId);
+    if (error) throw error;
+  }
+  watchGroupProfiles(groupId: string, onChange: () => void): () => void {
+    const channel = this.client
+      .channel(`group-profiles-${groupId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onChange)
+      .subscribe();
+    return () => {
+      void this.client.removeChannel(channel);
+    };
+  }
+}

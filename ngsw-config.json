@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/@angular/service-worker/config/schema.json",
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "resources": {
+        "files": ["/favicon.ico", "/*.css", "/*.js", "/index.html", "/manifest.webmanifest"]
+      }
+    },
+    {
+      "name": "assets",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": { "files": ["/**/*.(svg|jpg|png|webp|woff2)"] }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "map-style",
+      "urls": ["https://demotiles.maplibre.org/**"],
+      "cacheConfig": { "strategy": "freshness", "maxSize": 20, "maxAge": "1d", "timeout": "5s" }
+    }
+  ]
+}
