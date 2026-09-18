@@ -55,13 +55,6 @@ import { LucideTrash, LucideUsers } from '@lucide/angular';
       >
         <svg lucideTrash></svg>Gruppe löschen
       </button>
-      <input
-        *ngIf="inviteUrl()"
-        [value]="inviteUrl()"
-        readonly
-        aria-label="Einladungslink"
-        (click)="$event.stopPropagation()"
-      />
     </div>
     <p class="success" *ngIf="inviteMessage()">{{ inviteMessage() }}</p>
     <ng-template #empty
@@ -101,7 +94,6 @@ export class FriendsComponent implements OnInit {
   readonly error = signal('');
   groupName = '';
   groupId = '';
-  readonly inviteUrl = signal('');
   readonly inviteMessage = signal('');
   private stopRealtime?: () => void;
   async ngOnInit(): Promise<void> {
@@ -150,7 +142,6 @@ export class FriendsComponent implements OnInit {
   }
   async select(group: PlayerGroup): Promise<void> {
     this.selected.set(group);
-    this.inviteUrl.set('');
     this.inviteMessage.set('');
     this.stopRealtime?.();
     this.stopRealtime = undefined;
@@ -171,7 +162,6 @@ export class FriendsComponent implements OnInit {
     if (!group) return;
     try {
       const url = `${window.location.origin}${window.location.pathname}#/join/${group.id}`;
-      this.inviteUrl.set(url);
       await navigator.clipboard?.writeText(url);
       this.inviteMessage.set('Einladungslink erstellt und kopiert.');
     } catch (error) {
