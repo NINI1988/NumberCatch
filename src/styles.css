@@ -359,6 +359,19 @@ textarea {
   color: #486581;
   font-size: 0.9rem;
 }
+.location-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--navy);
+  font-weight: 700;
+}
+.location-toggle input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--blue);
+}
 .error {
   color: #c0392b;
 }

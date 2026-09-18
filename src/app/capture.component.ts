@@ -37,6 +37,16 @@ import { SupabaseService } from './supabase.service';
           placeholder="z. B. Parkplatz am Bahnhof"
         ></textarea>
       </label>
+      <label class="location-toggle">
+        <input
+          type="checkbox"
+          name="saveLocation"
+          [(ngModel)]="saveLocation"
+          (ngModelChange)="locationPreferenceChanged()"
+          [disabled]="saving()"
+        />
+        <span>Standort speichern</span>
+      </label>
       <div class="location-status">{{ locationStatus() }}</div>
       <button
         class="primary full"
@@ -68,6 +78,7 @@ export class CaptureComponent implements OnInit {
   readonly locationStatus = signal('Standort wird beim Speichern erfasst.');
   number: number | null = null;
   note = '';
+  saveLocation = true;
   private position: GeolocationPosition | null = null;
   ngOnInit(): void {
     const routeNumber = Number(this.route.snapshot.queryParamMap.get('number'));
@@ -91,7 +102,9 @@ export class CaptureComponent implements OnInit {
     }
     this.saving.set(true);
     try {
-      this.locationStatus.set('Standort wird erfasst …');
+      this.locationStatus.set(
+        this.saveLocation ? 'Standort wird erfasst …' : 'Fund wird ohne Standort gespeichert …',
+      );
       await this.capturePosition();
       this.locationStatus.set('Fund wird gespeichert …');
       await this.supabase.saveSighting(profile.id, {
@@ -139,8 +152,16 @@ export class CaptureComponent implements OnInit {
     const kind = this.game.classify(this.auth.profile()?.current_number ?? 0, this.number).kind;
     return kind === 'next' ? 'Bestätigen' : kind === 'hint' ? 'Vormerken' : 'Bereits erledigt';
   }
+  locationPreferenceChanged(): void {
+    if (!this.saveLocation) {
+      this.position = null;
+      this.locationStatus.set('Standort wird nicht gespeichert.');
+    } else {
+      this.locationStatus.set('Standort wird beim Speichern erfasst.');
+    }
+  }
   private capturePosition(): Promise<void> {
-    if (this.position || !navigator.geolocation) return Promise.resolve();
+    if (!this.saveLocation || this.position || !navigator.geolocation) return Promise.resolve();
     return new Promise((resolve) => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
