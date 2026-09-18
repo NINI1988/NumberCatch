@@ -34,7 +34,6 @@ export class SupabaseService {
       .from('sightings')
       .select('*')
       .eq('user_id', userId)
-      .eq('type', 'hint')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return (data ?? []) as Sighting[];

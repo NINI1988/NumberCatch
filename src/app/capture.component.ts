@@ -1,17 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from './auth.service';
 import { CaptureResult, GameService } from './game.service';
 import { SyncService } from './sync.service';
-import { LucideArrowLeft } from '@lucide/angular';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LucideArrowLeft],
+  imports: [CommonModule, FormsModule],
   template: ` <section class="page narrow">
-    <a routerLink="/numbers" class="back-link"><svg lucideArrowLeft></svg>Zahlen</a>
     <p class="eyebrow">NEUER FUND</p>
     <h1>Kennzeichen erfassen</h1>
     <p class="muted">

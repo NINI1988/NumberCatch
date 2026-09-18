@@ -399,6 +399,22 @@ textarea {
 .stale {
   background: #829ab1;
 }
+.confirmed {
+  background: #48a868;
+}
+.number-marker {
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 900;
+  box-shadow: 0 2px 6px #102a4366;
+}
 .map-note {
   font-size: 0.85rem;
 }

@@ -14,18 +14,18 @@ import { LucideTrash } from '@lucide/angular';
     <div class="page-heading">
       <div>
         <p class="eyebrow">PRIVATE KARTE</p>
-        <h1>Deine Vormerkungen</h1>
+        <h1>Deine Funde</h1>
       </div>
     </div>
     <div #map class="map"></div>
     <div class="map-legend">
-      <span><i class="fresh"></i>aktuell</span><span><i class="old"></i>älter</span
-      ><span><i class="stale"></i>veraltet</span>
+      <span><i class="confirmed"></i>bestätigt</span><span><i class="fresh"></i>aktuell</span
+      ><span><i class="old"></i>älter</span><span><i class="stale"></i>veraltet</span>
     </div>
-    <p class="muted map-note">Nur du siehst die GPS-Standorte deiner Vormerkungen.</p>
+    <p class="muted map-note">Nur du siehst die GPS-Standorte deiner eigenen Funde.</p>
     <p class="error" *ngIf="loadError()">{{ loadError() }}</p>
     <div class="sighting-list" *ngIf="sightings().length; else noSightings">
-      <h2>Vormerkungen</h2>
+      <h2>Funde</h2>
       <div
         class="sighting-row"
         *ngFor="let sighting of sightings()"
@@ -36,7 +36,9 @@ import { LucideTrash } from '@lucide/angular';
       >
         <span class="sighting-number">{{ sighting.number }}</span>
         <span class="sighting-details"
-          ><strong>{{ ageLabel(sighting.created_at) }}</strong
+          ><strong>{{
+            sighting.type === 'confirmed' ? 'Bestätigt' : ageLabel(sighting.created_at)
+          }}</strong
           ><small
             >{{ sighting.created_at | date: 'dd.MM.yyyy, HH:mm' }} Uhr<span *ngIf="sighting.note">
               · {{ sighting.note }}</span
@@ -44,6 +46,7 @@ import { LucideTrash } from '@lucide/angular';
           ></span
         >
         <button
+          *ngIf="sighting.type === 'hint'"
           class="delete-button"
           type="button"
           (click)="remove(sighting, $event)"
@@ -56,7 +59,7 @@ import { LucideTrash } from '@lucide/angular';
     </div>
     <ng-template #noSightings
       ><div class="empty-state compact">
-        <h2>Noch keine Vormerkungen</h2>
+        <h2>Noch keine Funde</h2>
         <p class="muted">Spätere Zahlen kannst du beim Erfassen vormerken.</p>
       </div></ng-template
     >
@@ -87,11 +90,15 @@ export class MapComponent implements AfterViewInit {
       this.sightings.set(sightings);
       for (const sighting of sightings) {
         if (sighting.latitude === null || sighting.longitude === null) continue;
-        const marker = new maplibregl.Marker({ color: this.color(sighting.created_at) })
+        const markerElement = document.createElement('div');
+        markerElement.className = 'number-marker';
+        markerElement.textContent = String(sighting.number);
+        markerElement.style.backgroundColor = this.color(sighting);
+        const marker = new maplibregl.Marker({ element: markerElement, anchor: 'bottom' })
           .setLngLat([sighting.longitude, sighting.latitude])
           .setPopup(
             new maplibregl.Popup().setText(
-              `${sighting.number} · ${this.ageLabel(sighting.created_at)}${sighting.note ? ` · ${sighting.note}` : ''}`,
+              `${sighting.number} · ${sighting.type === 'confirmed' ? 'Bestätigt' : this.ageLabel(sighting.created_at)}${sighting.note ? ` · ${sighting.note}` : ''}`,
             ),
           )
           .addTo(this.map!);
@@ -128,8 +135,9 @@ export class MapComponent implements AfterViewInit {
     const days = (Date.now() - Date.parse(date)) / 86400000;
     return days <= 7 ? 'Aktuell' : days <= 30 ? 'Älter' : 'Wahrscheinlich veraltet';
   }
-  private color(date: string): string {
-    const days = (Date.now() - Date.parse(date)) / 86400000;
+  private color(sighting: Sighting): string {
+    if (sighting.type === 'confirmed') return '#48a868';
+    const days = (Date.now() - Date.parse(sighting.created_at)) / 86400000;
     return days <= 7 ? '#ef8354' : days <= 30 ? '#f2c14e' : '#829ab1';
   }
 }
