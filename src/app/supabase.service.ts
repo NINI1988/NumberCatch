@@ -92,17 +92,33 @@ export class SupabaseService {
   async members(groupId: string): Promise<GroupMember[]> {
     const { data, error } = await this.client
       .from('group_members')
-      .select(
-        'group_id,user_id,joined_at,profiles!inner(id,display_name,avatar_url,current_number)',
-      )
+      .select('group_id,user_id,joined_at')
       .eq('group_id', groupId);
     if (error) throw error;
-    return (data ?? []).map((item) => ({
-      group_id: item.group_id as string,
-      user_id: item.user_id as string,
-      joined_at: item.joined_at as string,
-      profile: item.profiles as unknown as Profile,
-    }));
+    const memberships = data ?? [];
+    const userIds = memberships.map((item) => item.user_id as string);
+    if (!userIds.length) return [];
+    const { data: profiles, error: profileError } = await this.client
+      .from('profiles')
+      .select('id,display_name,avatar_url,current_number')
+      .in('id', userIds);
+    if (profileError) throw profileError;
+    const profilesById = new Map(
+      (profiles ?? []).map((profile) => [profile.id as string, profile as Profile]),
+    );
+    return memberships.flatMap((item) => {
+      const profile = profilesById.get(item.user_id as string);
+      return profile
+        ? [
+            {
+              group_id: item.group_id as string,
+              user_id: item.user_id as string,
+              joined_at: item.joined_at as string,
+              profile,
+            },
+          ]
+        : [];
+    });
   }
   async uploadAvatar(userId: string, file: File): Promise<string> {
     const extension = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
@@ -134,8 +150,13 @@ export class SupabaseService {
     if (error) throw error;
   }
   watchGroupProfiles(groupId: string, onChange: () => void): () => void {
+    const topic = `group-profiles-${groupId}`;
+    const existing = this.client
+      .getChannels()
+      .find((channel) => channel.topic === `realtime:${topic}`);
+    if (existing) void this.client.removeChannel(existing);
     const channel = this.client
-      .channel(`group-profiles-${groupId}`)
+      .channel(topic)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onChange)
       .subscribe();
     return () => {

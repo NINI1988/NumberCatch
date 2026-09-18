@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from './auth.service';
 import { GroupMember, PlayerGroup } from './models';
 import { SupabaseService } from './supabase.service';
+import { LucideUsers } from '@lucide/angular';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LucideUsers],
   template: `<section class="page">
     <p class="eyebrow">DEINE GRUPPE</p>
     <h1>Freunde</h1>
@@ -36,14 +37,28 @@ import { SupabaseService } from './supabase.service';
         {{ group.name }}
       </button>
     </div>
+    <div class="invite-actions" *ngIf="selected()">
+      <button class="secondary" (click)="copyGroupLink()">Gruppenlink kopieren</button>
+      <input
+        *ngIf="inviteUrl()"
+        [value]="inviteUrl()"
+        readonly
+        aria-label="Einladungslink"
+        (click)="$event.stopPropagation()"
+      />
+    </div>
+    <p class="success" *ngIf="inviteMessage()">{{ inviteMessage() }}</p>
     <ng-template #empty
       ><div class="empty-state">
-        <span class="empty-icon">♧</span>
+        <svg class="empty-icon" lucideUsers></svg>
         <h2>Noch keine Gruppe</h2>
         <p class="muted">Erstelle eine Gruppe oder tritt mit einer Gruppen-ID bei.</p>
       </div></ng-template
     >
     <div class="member-list" *ngIf="selected()">
+      <p class="muted group-summary">
+        {{ members().length }} {{ members().length === 1 ? 'Mitglied' : 'Mitglieder' }}
+      </p>
       <div class="member-row" *ngFor="let member of members()">
         <div
           class="avatar"
@@ -70,6 +85,9 @@ export class FriendsComponent implements OnInit {
   readonly error = signal('');
   groupName = '';
   groupId = '';
+  readonly inviteUrl = signal('');
+  readonly inviteMessage = signal('');
+  private stopRealtime?: () => void;
   async ngOnInit(): Promise<void> {
     await this.load();
   }
@@ -112,12 +130,33 @@ export class FriendsComponent implements OnInit {
   }
   async select(group: PlayerGroup): Promise<void> {
     this.selected.set(group);
+    this.inviteUrl.set('');
+    this.inviteMessage.set('');
+    this.stopRealtime?.();
+    this.stopRealtime = undefined;
     try {
       this.members.set(await this.supabase.members(group.id));
-      this.supabase.watchGroupProfiles(group.id, () => void this.refreshMembers(group.id));
+      this.stopRealtime = this.supabase.watchGroupProfiles(
+        group.id,
+        () => void this.refreshMembers(group.id),
+      );
     } catch (error) {
       this.error.set(
         error instanceof Error ? error.message : 'Mitglieder konnten nicht geladen werden.',
+      );
+    }
+  }
+  async copyGroupLink(): Promise<void> {
+    const group = this.selected();
+    if (!group) return;
+    try {
+      const url = `${window.location.origin}${window.location.pathname}#/join/${group.id}`;
+      this.inviteUrl.set(url);
+      await navigator.clipboard?.writeText(url);
+      this.inviteMessage.set('Einladungslink erstellt und kopiert.');
+    } catch (error) {
+      this.error.set(
+        error instanceof Error ? error.message : 'Einladung konnte nicht erstellt werden.',
       );
     }
   }

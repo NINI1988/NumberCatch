@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from './auth.service';
 import { SupabaseService } from './supabase.service';
+import { LucideArrowLeft, LucideLogOut } from '@lucide/angular';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, LucideArrowLeft, LucideLogOut],
   template: `<section class="page narrow">
-    <a routerLink="/numbers" class="back-link">← Zahlen</a>
+    <a routerLink="/numbers" class="back-link"><svg lucideArrowLeft></svg>Zahlen</a>
     <p class="eyebrow">DEIN KONTO</p>
     <h1>Profil</h1>
     <div class="profile-card">
@@ -27,7 +28,7 @@ import { SupabaseService } from './supabase.service';
       ><button class="primary full" (click)="save()">Profil speichern</button>
       <p class="muted" *ngIf="message">{{ message }}</p>
     </div>
-    <button class="secondary full" (click)="logout()">Ausloggen</button>
+    <button class="secondary full" (click)="logout()"><svg lucideLogOut></svg>Ausloggen</button>
   </section>`,
 })
 export class ProfileComponent {

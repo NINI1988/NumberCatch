@@ -178,6 +178,11 @@ main {
   top: 2px;
   font-size: 11px;
 }
+.number-cell .check {
+  width: 13px;
+  height: 13px;
+  stroke-width: 3;
+}
 .bottom-nav {
   position: fixed;
   z-index: 2;
@@ -205,6 +210,10 @@ main {
 .bottom-nav a span {
   font-size: 23px;
   line-height: 27px;
+}
+.bottom-nav a svg {
+  width: 23px;
+  height: 23px;
 }
 .bottom-nav a.active {
   color: var(--blue);
@@ -430,9 +439,21 @@ textarea {
   background: var(--navy);
   color: #fff;
 }
+.invite-actions {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+.invite-actions input {
+  min-width: 0;
+  font-size: 0.8rem;
+}
 .member-list {
   display: grid;
   gap: 10px;
+}
+.group-summary {
+  margin: 4px 0 0;
 }
 .member-row {
   display: flex;
@@ -531,6 +552,17 @@ textarea {
   font-size: 19px;
   line-height: 1;
   cursor: pointer;
+}
+.delete-button svg {
+  width: 19px;
+  height: 19px;
+  display: block;
+}
+.back-link svg,
+.secondary svg {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
 }
 .empty-state.compact {
   margin-top: 28px;

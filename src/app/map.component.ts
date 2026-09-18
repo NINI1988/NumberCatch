@@ -5,10 +5,11 @@ import { AuthService } from './auth.service';
 import { Sighting } from './models';
 import { SupabaseService } from './supabase.service';
 import { environment } from '../environments/environment';
+import { LucideTrash } from '@lucide/angular';
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideTrash],
   template: `<section class="page">
     <div class="page-heading">
       <div>
@@ -49,7 +50,7 @@ import { environment } from '../environments/environment';
           aria-label="Vormerkung löschen"
           title="Vormerkung löschen"
         >
-          🗑
+          <svg lucideTrash></svg>
         </button>
       </div>
     </div>

@@ -5,10 +5,11 @@ import { AuthService } from './auth.service';
 import { GameService } from './game.service';
 import { Profile } from './models';
 import { SupabaseService } from './supabase.service';
+import { LucideCheck } from '@lucide/angular';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LucideCheck],
   template: `<section class="page">
     <div class="page-heading">
       <div>
@@ -48,7 +49,7 @@ import { SupabaseService } from './supabase.service';
             <small>gesucht</small>
           }
           @if (number <= current()) {
-            <span class="check">✓</span>
+            <svg class="check" lucideCheck></svg>
           }
         </div>
       }
