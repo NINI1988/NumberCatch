@@ -309,6 +309,23 @@ textarea {
   margin-top: 22px;
   box-shadow: 0 4px 16px #102a4312;
 }
+.profile-card {
+  display: grid;
+  gap: 16px;
+}
+.profile-card > label:not(.upload-label) {
+  display: grid;
+  gap: 8px;
+}
+.profile-card .upload-label {
+  margin: 0;
+}
+.profile-card .profile-avatar {
+  margin-bottom: 4px;
+}
+.profile-card p {
+  margin: 0;
+}
 .result-card.good {
   border: 2px solid #48a868;
 }
@@ -434,16 +451,35 @@ textarea {
   color: var(--blue);
   cursor: pointer;
 }
+.upload-label.disabled {
+  opacity: 0.6;
+  cursor: wait;
+  pointer-events: none;
+}
 .upload-label input {
   display: none;
 }
 .group-actions {
-  display: flex;
-  gap: 8px;
-  margin: 10px 0;
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #e6edf3;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #102a4312;
+}
+.group-actions strong {
+  display: block;
+  color: var(--navy);
+}
+.group-actions p {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
 }
 .group-actions input {
   min-width: 0;
+  width: 100%;
 }
 .group-list {
   display: flex;

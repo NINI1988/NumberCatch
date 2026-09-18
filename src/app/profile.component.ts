@@ -1,16 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { AuthService } from './auth.service';
 import { SupabaseService } from './supabase.service';
-import { LucideArrowLeft, LucideLogOut } from '@lucide/angular';
+import { LucideLogOut } from '@lucide/angular';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LucideArrowLeft, LucideLogOut],
+  imports: [CommonModule, FormsModule, LucideLogOut],
   template: `<section class="page narrow">
-    <a routerLink="/numbers" class="back-link"><svg lucideArrowLeft></svg>Zahlen</a>
     <p class="eyebrow">DEIN KONTO</p>
     <h1>Profil</h1>
     <div class="profile-card">
@@ -20,10 +18,21 @@ import { LucideArrowLeft, LucideLogOut } from '@lucide/angular';
           auth.profile()?.avatar_url ? 'url(' + auth.profile()?.avatar_url + ')' : null
         "
       >
-        {{ auth.profile()?.avatar_url ? '' : initials() }}
+        <span
+          *ngIf="uploading()"
+          class="loading-spinner"
+          aria-label="Avatar wird hochgeladen"
+        ></span>
+        <ng-container *ngIf="!uploading()">
+          {{ auth.profile()?.avatar_url ? '' : initials() }}
+        </ng-container>
       </div>
-      <label class="upload-label"
-        >Avatar ändern<input type="file" accept="image/*" (change)="upload($event)" /></label
+      <label class="upload-label" [class.disabled]="uploading()"
+        >Avatar ändern<input
+          type="file"
+          accept="image/*"
+          [disabled]="uploading()"
+          (change)="upload($event)" /></label
       ><label>Anzeigename<input [(ngModel)]="name" maxlength="80" /></label
       ><button class="primary full" (click)="save()">Profil speichern</button>
       <p class="muted" *ngIf="message">{{ message }}</p>
@@ -34,6 +43,7 @@ import { LucideArrowLeft, LucideLogOut } from '@lucide/angular';
 export class ProfileComponent {
   readonly auth = inject(AuthService);
   private readonly supabase = inject(SupabaseService);
+  readonly uploading = signal(false);
   name = '';
   message = '';
   constructor() {
@@ -54,15 +64,19 @@ export class ProfileComponent {
     }
   }
   async upload(event: Event): Promise<void> {
+    if (this.uploading()) return;
     const profile = this.auth.profile();
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!profile || !file) return;
+    this.uploading.set(true);
     try {
       const url = await this.supabase.uploadAvatar(profile.id, file);
       this.auth.profile.set({ ...profile, avatar_url: url });
       this.message = 'Avatar gespeichert.';
     } catch {
       this.message = 'Avatar konnte nicht gespeichert werden.';
+    } finally {
+      this.uploading.set(false);
     }
   }
   async logout(): Promise<void> {

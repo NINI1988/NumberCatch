@@ -13,18 +13,26 @@ import { LucideUsers } from '@lucide/angular';
     <p class="eyebrow">DEINE GRUPPE</p>
     <h1>Freunde</h1>
     <div class="group-actions">
+      <div>
+        <strong>Neue Gruppe erstellen</strong>
+        <p class="muted">Starte eine neue Runde mit deinen Freunden.</p>
+      </div>
       <input
         [(ngModel)]="groupName"
         placeholder="Neue Gruppe"
         aria-label="Name der neuen Gruppe"
-      /><button class="primary" (click)="create()">Erstellen</button>
+      /><button class="primary" (click)="create()">Gruppe erstellen</button>
     </div>
     <div class="group-actions">
+      <div>
+        <strong>Gruppe beitreten</strong>
+        <p class="muted">Nutze die Gruppen-ID oder den kopierten Link.</p>
+      </div>
       <input
         [(ngModel)]="groupId"
         placeholder="Gruppen-ID zum Beitreten"
         aria-label="Gruppen-ID"
-      /><button class="secondary" (click)="join()">Beitreten</button>
+      /><button class="secondary" (click)="join()">Gruppe beitreten</button>
     </div>
     <p class="error" *ngIf="error()">{{ error() }}</p>
     <div class="group-list" *ngIf="groups().length; else empty">
