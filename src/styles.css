@@ -374,18 +374,39 @@ textarea {
   margin-top: 30px;
 }
 .map {
-  height: 58vh;
-  min-height: 360px;
+  height: clamp(280px, 42vh, 420px);
+  min-height: 280px;
   border-radius: 18px;
   overflow: hidden;
   background: #d9eaf7;
 }
 .map-legend {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 15px;
   margin-top: 12px;
   font-size: 0.8rem;
   color: var(--muted);
+}
+.legend-filter,
+.reset-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.legend-filter.inactive {
+  opacity: 0.35;
+}
+.reset-filter {
+  color: var(--blue);
+  font-weight: 800;
 }
 .map-legend i {
   display: inline-block;
@@ -637,9 +658,31 @@ textarea {
   height: 42px;
   flex: 0 0 42px;
   border-radius: 12px;
+  background: #e6edf3;
+  color: var(--navy);
+  font-weight: 900;
+}
+.sighting-number.confirmed {
   background: #e6f6ee;
   color: #1f7a50;
-  font-weight: 900;
+}
+.sighting-number.fresh {
+  background: #fff0eb;
+  color: #c75a32;
+}
+.sighting-number.old {
+  background: #fff8df;
+  color: #9a7412;
+}
+.sighting-number.stale {
+  background: #e6edf3;
+  color: #486581;
+}
+.sighting-location {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--blue);
 }
 .sighting-details {
   min-width: 0;

@@ -5,11 +5,13 @@ import { AuthService } from './auth.service';
 import { Sighting } from './models';
 import { SupabaseService } from './supabase.service';
 import { environment } from '../environments/environment';
-import { LucideTrash } from '@lucide/angular';
+import { LucideMapPin, LucideTrash } from '@lucide/angular';
+
+type SightingStatus = 'confirmed' | 'fresh' | 'old' | 'stale';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, LucideTrash],
+  imports: [CommonModule, LucideMapPin, LucideTrash],
   template: `<section class="page">
     <div class="page-heading">
       <div>
@@ -19,22 +21,38 @@ import { LucideTrash } from '@lucide/angular';
     </div>
     <div #map class="map"></div>
     <div class="map-legend">
-      <span><i class="confirmed"></i>bestätigt</span><span><i class="fresh"></i>aktuell</span
-      ><span><i class="old"></i>älter</span><span><i class="stale"></i>veraltet</span>
+      <button
+        *ngFor="let option of statusOptions"
+        type="button"
+        class="legend-filter"
+        [class.inactive]="!isStatusVisible(option.status)"
+        [attr.aria-pressed]="isStatusVisible(option.status)"
+        (click)="toggleStatus(option.status)"
+      >
+        <i [ngClass]="option.status"></i>{{ option.label }}
+      </button>
+      <button type="button" class="reset-filter" (click)="showAllStatuses()">Alle</button>
     </div>
     <p class="muted map-note">Nur du siehst die GPS-Standorte deiner eigenen Funde.</p>
     <p class="error" *ngIf="loadError()">{{ loadError() }}</p>
     <div class="sighting-list" *ngIf="sightings().length; else noSightings">
       <h2>Funde</h2>
+      <p class="muted" *ngIf="!visibleSightings().length">Keine Funde für diese Filter.</p>
       <div
         class="sighting-row"
-        *ngFor="let sighting of sightings()"
+        *ngFor="let sighting of visibleSightings()"
         (click)="focus(sighting)"
         role="button"
         tabindex="0"
         (keydown.enter)="focus(sighting)"
       >
-        <span class="sighting-number">{{ sighting.number }}</span>
+        <span class="sighting-number" [ngClass]="statusClass(sighting)">{{ sighting.number }}</span>
+        <svg
+          *ngIf="sighting.latitude !== null && sighting.longitude !== null"
+          class="sighting-location"
+          lucideMapPin
+          aria-label="Standort vorhanden"
+        ></svg>
         <span class="sighting-details"
           ><strong>{{
             sighting.type === 'confirmed' ? 'Bestätigt' : ageLabel(sighting.created_at)
@@ -73,6 +91,15 @@ export class MapComponent implements AfterViewInit {
   private readonly markers = new Map<string, Marker>();
   readonly sightings = signal<Sighting[]>([]);
   readonly loadError = signal('');
+  readonly statusOptions: ReadonlyArray<{ status: SightingStatus; label: string }> = [
+    { status: 'confirmed', label: 'bestätigt' },
+    { status: 'fresh', label: 'aktuell' },
+    { status: 'old', label: 'älter' },
+    { status: 'stale', label: 'veraltet' },
+  ];
+  readonly visibleStatuses = signal<Set<SightingStatus>>(
+    new Set(this.statusOptions.map((option) => option.status)),
+  );
   ngAfterViewInit(): void {
     this.map = new maplibregl.Map({
       container: this.mapElement.nativeElement,
@@ -104,6 +131,7 @@ export class MapComponent implements AfterViewInit {
           .addTo(this.map!);
         this.markers.set(sighting.id, marker);
       }
+      this.updateMarkerVisibility();
     } catch (error) {
       this.loadError.set(
         error instanceof Error ? error.message : 'Vormerkungen konnten nicht geladen werden.',
@@ -112,6 +140,7 @@ export class MapComponent implements AfterViewInit {
   }
   focus(sighting: Sighting): void {
     if (sighting.latitude === null || sighting.longitude === null || !this.map) return;
+    this.mapElement.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     this.map.flyTo({ center: [sighting.longitude, sighting.latitude], zoom: 14 });
     this.markers.get(sighting.id)?.togglePopup();
   }
@@ -134,6 +163,40 @@ export class MapComponent implements AfterViewInit {
   ageLabel(date: string): string {
     const days = (Date.now() - Date.parse(date)) / 86400000;
     return days <= 7 ? 'Aktuell' : days <= 30 ? 'Älter' : 'Wahrscheinlich veraltet';
+  }
+  statusClass(sighting: Sighting): SightingStatus {
+    if (sighting.type === 'confirmed') return 'confirmed';
+    const days = (Date.now() - Date.parse(sighting.created_at)) / 86400000;
+    return days <= 7 ? 'fresh' : days <= 30 ? 'old' : 'stale';
+  }
+  visibleSightings(): Sighting[] {
+    const visibleStatuses = this.visibleStatuses();
+    return this.sightings().filter((sighting) => visibleStatuses.has(this.statusClass(sighting)));
+  }
+  isStatusVisible(status: SightingStatus): boolean {
+    return this.visibleStatuses().has(status);
+  }
+  toggleStatus(status: SightingStatus): void {
+    const statuses = new Set(this.visibleStatuses());
+    if (statuses.has(status)) statuses.delete(status);
+    else statuses.add(status);
+    this.visibleStatuses.set(statuses);
+    this.updateMarkerVisibility();
+  }
+  showAllStatuses(): void {
+    this.visibleStatuses.set(new Set(this.statusOptions.map((option) => option.status)));
+    this.updateMarkerVisibility();
+  }
+  private updateMarkerVisibility(): void {
+    const visibleStatuses = this.visibleStatuses();
+    for (const sighting of this.sightings()) {
+      const marker = this.markers.get(sighting.id);
+      if (marker) {
+        marker.getElement().style.display = visibleStatuses.has(this.statusClass(sighting))
+          ? ''
+          : 'none';
+      }
+    }
   }
   private color(sighting: Sighting): string {
     if (sighting.type === 'confirmed') return '#48a868';
