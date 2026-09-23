@@ -1,12 +1,21 @@
 <!DOCTYPE html>
-<html>
-<head>
-   <meta http-equiv="refresh" content="0; url=https://numbercatch.github.io/" />
-   <script>
-      window.location.href = "https://numbercatch.github.io/";
-   </script>
-</head>
-<body>
-   <p>Spiel verschoben! Du wirst weitergeleitet...</p>
-</body>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weiterleitung – NumberCatch</title>
+    <script>
+      window.location.replace(
+        'https://numbercatch.github.io/' + window.location.hash
+      );
+    </script>
+  </head>
+  <body>
+    <p>
+      Spiel verschoben!
+      <a href="https://numbercatch.github.io/">
+        https://numbercatch.github.io/
+      </a>
+    </p>
+  </body>
 </html>
